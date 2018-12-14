@@ -23,13 +23,13 @@ namespace BinaryTreeTraverser
     {
         public Node root;
 
-        public virtual void PrintPaths(Node node)
+        public virtual void StorePaths(Node node, ref string str)
         {
             string[] path = new string[100];
-            PrintPathsRecur(node, path, 0);
+            StorePathsRecur(node, path, 0, ref str);
         }
 
-        public virtual void PrintPathsRecur(Node node, string[] path, int pathLen)
+        public virtual void StorePathsRecur(Node node, string[] path, int pathLen, ref string str)
         {
             if (node == null)
                 return;
@@ -38,20 +38,19 @@ namespace BinaryTreeTraverser
             pathLen++;
 
             if (node.left == null && node.right == null)
-                printArray(path, pathLen);
+                PrintArray(path, pathLen, ref str);
             else
             {
-                PrintPathsRecur(node.left, path, pathLen);
-                PrintPathsRecur(node.right, path, pathLen);
+                StorePathsRecur(node.left, path, pathLen, ref str);
+                StorePathsRecur(node.right, path, pathLen, ref str);
             }
         }
 
-        public virtual void printArray(string[] ints, int len)
+        public virtual void PrintArray(string[] ints, int len, ref string str)
         {
             for (int i = 0; i < len; i++)
-                Console.Write(ints[i] + " ");
-
-            Console.WriteLine("");
+                str += ints[i];
+            str += ";";
         }
 
         public virtual void PreOrder(Node node)
@@ -87,6 +86,7 @@ namespace BinaryTreeTraverser
             }
             return -1;
         }
+
         public virtual Node TreeFromString(string str, int si, int ei)
         {
             if (si > ei)
@@ -140,9 +140,10 @@ namespace BinaryTreeTraverser
             BinaryTree tree = new BinaryTree();
 
             string str = "10(3(5(6222(4(10(11)())())(7(8(12)())()))())())(4(7(6(5(6)())(7(6)()))())())";
+            string paths = "";
             Node root = tree.TreeFromString(str, 0, str.Length - 1);
-            tree.PrintPaths(root);
-            //tree.PreOrder(root);
+            tree.StorePaths(root, ref paths);
+            tree.PreOrder(root);
         }
     }
 }
