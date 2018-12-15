@@ -11,11 +11,19 @@ namespace BinaryTreeTraverser
     {
         public string data;
         public Node left, right;
+        public bool isOptional = false;
 
         public Node(string value)
         {
             data = value;
             left = right = null;
+        }
+
+        public Node(string value, bool optionalCheck)
+        {
+            data = value;
+            left = right = null;
+            isOptional = optionalCheck;
         }
     }
 
@@ -33,12 +41,25 @@ namespace BinaryTreeTraverser
         {
             if (node == null)
                 return;
+            
+            if (node.isOptional)
+            {
+                path[pathLen] = "";
+                pathLen++;
 
+                if (node.left == null && node.right == null)
+                    PrintAndStorePaths(path, pathLen, ref str);
+                else
+                {
+                    StorePathsRecur(node.left, path, pathLen, ref str);
+                    StorePathsRecur(node.right, path, pathLen, ref str);
+                }
+            }
             path[pathLen] = node.data;
             pathLen++;
 
             if (node.left == null && node.right == null)
-                PrintArray(path, pathLen, ref str);
+                PrintAndStorePaths(path, pathLen, ref str);
             else
             {
                 StorePathsRecur(node.left, path, pathLen, ref str);
@@ -46,11 +67,20 @@ namespace BinaryTreeTraverser
             }
         }
 
-        public virtual void PrintArray(string[] ints, int len, ref string str)
+        public virtual void PrintAndStorePaths(string[] ints, int len, ref string str)
         {
             for (int i = 0; i < len; i++)
-                str += ints[i];
+            {
+                if (string.IsNullOrEmpty(ints[i]))
+                    str += ints[i];
+                else
+                {
+                    str += ints[i];
+                    Console.Write(ints[i] + " ");
+                }
+            }
             str += ";";
+            Console.WriteLine("");
         }
 
         public virtual void PreOrder(Node node)
@@ -96,10 +126,24 @@ namespace BinaryTreeTraverser
             int value_digits = 0;
             Node root;
 
-            while (str[si + value_digits] != '(' && str[si + value_digits] != ')')
+            while (str[si + value_digits] != '(' && str[si + value_digits] != ')' && str[si + value_digits] != '*')
                 value_digits++;
 
-            if ((str[si + value_digits] == '(' || str[si + value_digits] == ')') && si < (str.Length - 1))
+            if (str[si + value_digits] == '*')
+            {
+                string digits = str.Substring(si, value_digits); ;
+                root = string.IsNullOrEmpty(digits) ? new Node("") : new Node(digits, true);
+
+                if (si + value_digits + 2 <= ei && str[si + value_digits + 1] == '(')
+                    index = FindIndex(str, si + value_digits + 1, ei);
+
+                if (index != -1)
+                {
+                    root.left = TreeFromString(str, si + value_digits + 2, index - 1);
+                    root.right = TreeFromString(str, index + 2, ei - 1);
+                }
+            }
+            else if ((str[si + value_digits] == '(' || str[si + value_digits] == ')') && si < (str.Length - 1))
             {
                 string digits = str.Substring(si, value_digits);
                 root = string.IsNullOrEmpty(digits) ? new Node("") : new Node(digits);
@@ -115,16 +159,16 @@ namespace BinaryTreeTraverser
             }
             else
             {
+                string digits = str.Substring(si, value_digits);
+                root = string.IsNullOrEmpty(digits) ? new Node("") : new Node(digits);
 
-                root = new Node(str[si].ToString());
-
-                if (si + 1 <= ei && str[si + 1] == '(')
-                    index = FindIndex(str, si + 1, ei);
+                if (si + value_digits + 1 <= ei && str[si + value_digits] == '(')
+                    index = FindIndex(str, si + value_digits, ei);
 
                 if (index != -1)
                 {
-                    root.left = TreeFromString(str, si + 2, index - 1);
-                    root.right = TreeFromString(str, index + 2, ei - 1);
+                    root.left = TreeFromString(str, si + value_digits + 1, index - 1);
+                    root.right = TreeFromString(str, index + value_digits + 1, ei - 1);
                 }
             }
 
@@ -139,7 +183,7 @@ namespace BinaryTreeTraverser
         {
             BinaryTree tree = new BinaryTree();
 
-            string str = "10(3(5(6222(4(10(11)())())(7(8(12)())()))())())(4(7(6(5(6)())(7(6)()))())())";
+            string str = "1(3(5*(6(4(10(11)())())(7*(8(12)())()))())())(4(7(6(5*(6)())(7(6)()))())())";
             string paths = "";
             Node root = tree.TreeFromString(str, 0, str.Length - 1);
             tree.StorePaths(root, ref paths);
