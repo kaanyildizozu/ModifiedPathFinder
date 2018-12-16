@@ -3,26 +3,43 @@
 // https://www.geeksforgeeks.org/construct-binary-tree-string-bracket-representation/
 
 using System;
+using System.Diagnostics;
+using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BinaryTreeTraverser
 {
     public class Node
     {
-        public string data;
-        public Node left, right;
+        public string string_data;
+        public int int_data;
+        public Node left, right, skip;
         public bool isOptional = false;
 
         public Node(string value)
         {
-            data = value;
-            left = right = null;
+            string_data = value;
+            left = right = skip = null;
+        }
+
+        public Node(int value)
+        {
+            int_data = value;
+            left = right = skip = null;
         }
 
         public Node(string value, bool optionalCheck)
         {
-            data = value;
-            left = right = null;
+            string_data = value;
+            left = right = skip = null;
+            isOptional = optionalCheck;
+        }
+
+        public Node(int value, bool optionalCheck)
+        {
+            int_data = value;
+            left = right = skip = null;
             isOptional = optionalCheck;
         }
     }
@@ -35,6 +52,12 @@ namespace BinaryTreeTraverser
         {
             string[] path = new string[100];
             StorePathsRecur(node, path, 0, ref str);
+        }
+
+        public virtual void StoreIntPaths(Node node, ref List<int[]> possible_paths)
+        {
+            int[] path = new int[100];
+            StoreIntPathsRecur(node, path, 0, ref possible_paths);
         }
 
         public virtual void StorePathsRecur(Node node, string[] path, int pathLen, ref string str)
@@ -55,7 +78,7 @@ namespace BinaryTreeTraverser
                     StorePathsRecur(node.right, path, pathLen, ref str);
                 }
             }
-            path[pathLen] = node.data;
+            path[pathLen] = node.string_data;
             pathLen++;
 
             if (node.left == null && node.right == null)
@@ -65,6 +88,50 @@ namespace BinaryTreeTraverser
                 StorePathsRecur(node.left, path, pathLen, ref str);
                 StorePathsRecur(node.right, path, pathLen, ref str);
             }
+        }
+
+        public virtual void StoreIntPathsRecur(Node node, int[] path, int pathLen, ref List<int[]> possible_paths)
+        {
+            if (node == null)
+                return;
+
+            if (node.isOptional)
+            {
+                if (node.left == null && node.right == null)
+                {
+                    PrintAndStoreIntPaths(path, pathLen);
+                    possible_paths.Add(path);
+                }
+                else
+                {
+                    StoreIntPathsRecur(node.left, path, pathLen, ref possible_paths);
+                    StoreIntPathsRecur(node.right, path, pathLen, ref possible_paths);
+                }
+            }
+            path[pathLen] = node.int_data;
+            pathLen++;
+
+            if (node.left == null && node.right == null)
+            {
+                PrintAndStoreIntPaths(path, pathLen);
+                possible_paths.Add(path);
+            }
+            else
+            {
+                StoreIntPathsRecur(node.left, path, pathLen, ref possible_paths);
+                StoreIntPathsRecur(node.right, path, pathLen, ref possible_paths);
+            }
+        }
+
+        public virtual void PrintAndStoreIntPaths(int[] ints, int len)
+        {
+            for (int i = 0; i < len; i++)
+            {
+                if(ints[i] == null)
+                    Console.Write(ints[i]);
+                Console.Write(ints[i] + " ");
+            }
+            Console.WriteLine("");
         }
 
         public virtual void PrintAndStorePaths(string[] ints, int len, ref string str)
@@ -87,7 +154,7 @@ namespace BinaryTreeTraverser
         {
             if (node == null)
                 return;
-            Console.Write(node.data);
+            Console.Write(node.int_data);
             PreOrder(node.left);
             PreOrder(node.right);
         }
@@ -175,19 +242,101 @@ namespace BinaryTreeTraverser
 
             return root;
         }
+
+        public virtual Node CreateBinaryTree(int[] nodes, int[] parents,int[] optionalNodes)
+        {
+            // For now, I am assuming that the root node can not be optional.
+            Node root = InitializeBinaryTree(nodes[0]);
+            bool createdSuccessfully = false;
+
+            for (int i = 1; i < nodes.Length; i++)
+            {
+                createdSuccessfully = InsertNodeToBinaryTree(root, nodes[i], parents[i], optionalNodes.Contains(nodes[i]));    
+            }
+            
+            return createdSuccessfully ? root : null;
+        }
+
+        public virtual bool InsertNodeToBinaryTree(Node parent_root, int node, int parent, bool isOptional)
+        {
+            bool isInserted = false;
+            if (parent_root.int_data == parent)
+            {
+                if (parent_root.left == null && parent_root.right != null)
+                {
+                    parent_root.left = new Node(node, isOptional);
+                    isInserted = true;
+                }
+                else if (parent_root.left != null && parent_root.right == null)
+                {
+                    parent_root.right = new Node(node, isOptional);
+                    isInserted = true;
+                }
+                else if (parent_root.left == null && parent_root.right == null)
+                {
+                    parent_root.left = new Node(node, isOptional);
+                    isInserted = true;
+                }
+                else
+                    Console.Write("No room for third childs!!!");
+            }
+            else
+            {
+                if (parent_root.left != null)
+                {
+                    if (!(isInserted = InsertNodeToBinaryTree(parent_root.left, node, parent, isOptional)) && parent_root.right != null)
+                        isInserted = InsertNodeToBinaryTree(parent_root.right, node, parent, isOptional);
+                }
+                else if (parent_root.right != null)
+                {
+                    isInserted = InsertNodeToBinaryTree(parent_root.right, node, parent, isOptional);
+                }
+                else
+                {
+                    //Console.Write("Parentless child :(" + node.ToString());
+                    //Console.WriteLine("");
+                }
+            }
+            return isInserted;
+        }
+
+        public virtual Node InitializeBinaryTree(int root_value)
+        {
+            return new Node(root_value);
+        }
     }
 
     class Program
     {
         static void Main(string[] args)
         {
+            Stopwatch kronometer = new Stopwatch();
+            kronometer.Start();
             BinaryTree tree = new BinaryTree();
 
-            string str = "1(3(5*(6(4(10(11)())())(7*(8(12)())()))())())(4(7(6(5*(6)())(7(6)()))())())";
+            int[] nodes = new int[] { 1, 2, 13, 4, 3, 5, 11, 14, 6, 7, 12, 15, 9, 8, 16, 10, 22, 18, 17, 19, 20, 21, 24, 23, 25, 26 };
+            int[] parents = new int[] { -1, 1, 1, 2, 2, 4, 3, 13, 5, 5, 11, 14, 6, 7, 15, 9, 9, 16, 16, 18, 19, 10, 22, 22, 17, 25 };
+            int[] optional_nodes = new int[] { 4, 3, 6, 7, 10, 23, 8, 14, 15, 18, 17, 25, 26 };
+
+            List<int[]> possible_paths = new List<int[]>();
+            Node root = tree.CreateBinaryTree(nodes, parents, optional_nodes);
+            tree.StoreIntPaths(root, ref possible_paths);
+
+            kronometer.Stop();
+            Console.Write("Arrays method: " + kronometer.ElapsedMilliseconds + "TotalPaths: " + possible_paths.Count);
+
+            Console.WriteLine("");
+
+            kronometer.Reset();
+            kronometer.Start();
+            BinaryTree tree2 = new BinaryTree();
+            string str = "1(2(4*(5(6*(9(10*()(21))(22(24)(23*)))())(7*()(8*)))())(3*()(11(12)())))(13()(14*(15*()(16(18*(19(20)())())(17*(25*(26*)())())))()))";
+            Node root2 = tree.TreeFromString(str, 0, str.Length - 1);            
             string paths = "";
-            Node root = tree.TreeFromString(str, 0, str.Length - 1);
-            tree.StorePaths(root, ref paths);
-            tree.PreOrder(root);
+            tree.StorePaths(root2, ref paths);
+            kronometer.Stop();
+            Console.Write("String Method: " + kronometer.ElapsedMilliseconds);
+
         }
     }
 }
